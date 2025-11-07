@@ -17,7 +17,10 @@
     }
   </style>
 
-  <!-- Importa o editor iD diretamente da CDN -->
+  <!-- D3 primeiro -->
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+
+  <!-- Biblioteca iD -->
   <script src="https://unpkg.com/@openstreetmap/id@2.21.2/dist/iD.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/@openstreetmap/id@2.21.2/dist/iD.css">
 </head>
@@ -26,23 +29,36 @@
   <div id="id-container"></div>
 
   <script>
-    // Inicializa o contexto principal do editor iD
-    const context = iD.coreContext()
-      .assetPath('https://unpkg.com/@openstreetmap/id@2.21.2/dist/')
-      .embed(true);
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        // Inicializa o contexto principal
+        const context = iD.coreContext()
+          .assetPath('https://unpkg.com/@openstreetmap/id@2.21.2/dist/')
+          .embed(true);
 
-    // Remove autenticação e conexão remota (modo local/offline)
-    context.preauth({ server: null });
-    context.connection(null);
+        // Desativa autenticação e servidor remoto
+        context.preauth({ server: null });
+        context.connection(null);
 
-    // Define o mapa base padrão (Bing Maps)
-    context.background().baseLayerSource(
-      iD.data.imagery.find(src => src.id === 'Bing')
-    );
+        // Define camada base segura (usando OSM como fallback)
+        const baseLayer = iD.data.imagery.find(src => src.id === 'Bing') 
+                       || iD.data.imagery.find(src => src.id === 'osm');
+        context.background().baseLayerSource(baseLayer);
 
-    // Renderiza o editor dentro do container
-    d3.select('#id-container').call(context.ui());
-    context.enter(iD.modes.Browse(context));
+        // Renderiza dentro do container
+        d3.select('#id-container').call(context.ui());
+        context.enter(iD.modes.Browse(context));
+
+        console.log("✅ Editor iD iniciado corretamente.");
+
+      } catch (err) {
+        console.error("❌ Erro ao inicializar o editor iD:", err);
+        const msg = document.createElement('div');
+        msg.style = "color:red; padding:20px; font-family:sans-serif;";
+        msg.innerText = "Erro ao carregar o editor iD: " + err.message;
+        document.body.appendChild(msg);
+      }
+    });
   </script>
 </body>
 </html>
