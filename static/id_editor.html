@@ -1,64 +1,73 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="utf-8" />
-  <title>Editor OSM Local</title>
+    <meta charset="utf-8" />
+    <title>Editor OSM Local</title>
 
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-    #id-container {
-      width: 100%;
-      height: 100%;
-    }
-  </style>
+    <style>
+        /* Garante que o container do editor ocupe todo o espaço */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        #id-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 
-  <!-- D3 primeiro -->
-  <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
 
-  <!-- Biblioteca iD -->
-  <script src="https://unpkg.com/@openstreetmap/id@2.21.2/dist/iD.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/@openstreetmap/id@2.21.2/dist/iD.css">
+    <script src="https://unpkg.com/@openstreetmap/id@2.21.2/dist/iD.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@openstreetmap/id@2.21.2/dist/iD.css">
 </head>
 
 <body>
-  <div id="id-container"></div>
+    <div id="id-container"></div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      try {
-        // Inicializa o contexto principal
-        const context = iD.coreContext()
-          .assetPath('https://unpkg.com/@openstreetmap/id@2.21.2/dist/')
-          .embed(true);
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Notifica o Streamlit (iframe pai) que a página (onde o iD será inicializado) foi carregada
+                window.parent.postMessage({ type: 'osm_status', status: 'loading' }, '*');
 
-        // Desativa autenticação e servidor remoto
-        context.preauth({ server: null });
-        context.connection(null);
+                // Inicializa o contexto principal
+                const context = iD.coreContext()
+                    .assetPath('https://unpkg.com/@openstreetmap/id@2.21.2/dist/')
+                    .embed(true);
 
-        // Define camada base segura (usando OSM como fallback)
-        const baseLayer = iD.data.imagery.find(src => src.id === 'Bing') 
-                       || iD.data.imagery.find(src => src.id === 'osm');
-        context.background().baseLayerSource(baseLayer);
+                // Desativa autenticação e servidor remoto
+                context.preauth({ server: null });
+                context.connection(null);
 
-        // Renderiza dentro do container
-        d3.select('#id-container').call(context.ui());
-        context.enter(iD.modes.Browse(context));
+                // Define camada base segura (usando OSM como fallback)
+                const baseLayer = iD.data.imagery.find(src => src.id === 'Bing')
+                                || iD.data.imagery.find(src => src.id === 'osm');
+                context.background().baseLayerSource(baseLayer);
 
-        console.log("✅ Editor iD iniciado corretamente.");
+                // Renderiza dentro do container
+                d3.select('#id-container').call(context.ui());
+                context.enter(iD.modes.Browse(context));
 
-      } catch (err) {
-        console.error("❌ Erro ao inicializar o editor iD:", err);
-        const msg = document.createElement('div');
-        msg.style = "color:red; padding:20px; font-family:sans-serif;";
-        msg.innerText = "Erro ao carregar o editor iD: " + err.message;
-        document.body.appendChild(msg);
-      }
-    });
-  </script>
+                // Notifica o Streamlit (iframe pai) que o editor foi inicializado com sucesso
+                window.parent.postMessage({ type: 'osm_status', status: 'loaded' }, '*');
+                console.log("✅ Editor iD iniciado corretamente.");
+
+            } catch (err) {
+                console.error("❌ Erro ao inicializar o editor iD:", err);
+                const errorMessage = "Erro ao inicializar o editor iD: " + (err.message || "falha desconhecida");
+
+                // Notifica o Streamlit (iframe pai) sobre o erro
+                window.parent.postMessage({ type: 'osm_status', status: 'error', message: errorMessage }, '*');
+
+                const msg = document.createElement('div');
+                msg.style = "color:red; padding:20px; font-family:sans-serif;";
+                msg.innerText = errorMessage;
+                document.body.appendChild(msg);
+            }
+        });
+    </script>
 </body>
 </html>
