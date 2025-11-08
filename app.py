@@ -1,5 +1,4 @@
 # Exemplo de uso de streamlit-folium (precisa instalar: pip install streamlit-folium)
-pip install streamlit-folium
 import streamlit as st
 from streamlit_folium import folium_static
 import folium
